@@ -12,7 +12,7 @@ export default function NumberDisplay({
   sequentialDisplay = false,
   digitDisplayDuration = 1000
 }: NumberDisplayProps) {
-  const { speakDigits, speaking, stopSpeaking, supported, config } = useSpeechSynthesis()
+  const { speakDigits, speaking, stopSpeaking, supported, config, speakText, stop } = useSpeechSynthesis()
   const isMountedRef = useRef(true)
   const [currentDigitIndex, setCurrentDigitIndex] = useState(-1)
 
@@ -21,12 +21,22 @@ export default function NumberDisplay({
     isMountedRef.current = true
 
     if (digits && config.enabled) {
-      speakDigits(digits)
-    }
+      // Stop any previous speech first, then wait before starting new speech
+      stop()
 
-    return () => {
-      isMountedRef.current = false
-      // Don't stop speech on unmount - let it finish naturally
+      const timer = setTimeout(async () => {
+        if (isMountedRef.current) {
+          // First say "请注意听"
+          await speakText('请注意听')
+          // Then speak the digits
+          speakDigits(digits)
+        }
+      }, 800) // Increased delay to let previous speech fully finish
+
+      return () => {
+        clearTimeout(timer)
+        isMountedRef.current = false
+      }
     }
   }, [digits, config.enabled])
 
@@ -79,6 +89,11 @@ export default function NumberDisplay({
       <h2>记住这些数字</h2>
       {supported && (
         <div className="speech-controls">
+          {!speaking && config.enabled && (
+            <button className="speaker-button" onClick={() => speakText(digits)} title="点击播放">
+              🔊
+            </button>
+          )}
           {speaking && (
             <button className="stop-button" onClick={stopSpeaking}>
               停止播报

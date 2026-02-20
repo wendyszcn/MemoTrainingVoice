@@ -69,12 +69,14 @@ export function startRecognition(
   onEnd: () => void,
   onError: (error: string) => void
 ): SpeechRecognition | null {
+  console.log('[SpeechRecognition] startRecognition called, supported:', isSupported())
   if (!isSupported()) {
     onError('您的浏览器不支持语音识别')
     return null
   }
 
   const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition
+  console.log('[SpeechRecognition] Creating recognition instance')
   const recognition = new SpeechRecognitionClass()
 
   // Continuous mode to keep listening
@@ -120,13 +122,16 @@ export function startRecognition(
   }
 
   recognition.onstart = () => {
-    // Started
+    console.log('[SpeechRecognition] Recognition started')
   }
 
   try {
+    console.log('[SpeechRecognition] Calling recognition.start()')
     recognition.start()
+    console.log('[SpeechRecognition] recognition.start() called successfully')
     return recognition
   } catch (e) {
+    console.error('[SpeechRecognition] Error starting recognition:', e)
     onError('启动语音识别失败')
     return null
   }

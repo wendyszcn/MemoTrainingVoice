@@ -31,32 +31,22 @@ export default function TrainingView() {
     // Calculate display time based on mode
     let displayTime: number
 
+    // Calculate speech time: 1200ms per digit at rate 1, plus delays
+    let speechTime = 0
+    if (voiceConfig.enabled) {
+      const rate = voiceConfig.rate || 1
+      // 800ms initial delay + 800ms "请注意听" + 1200ms per digit + 300ms between digits
+      speechTime = Math.ceil((800 + 800 + digits.length * 1200 + digits.length * 300) / rate)
+    }
+
     if (config.sequentialDisplay) {
       // Sequential mode: use digit display duration per digit
       displayTime = config.digitDisplayDuration * digits.length
-
-      // Add extra time for speech if enabled
-      if (voiceConfig.enabled !== false) {
-        const rate = voiceConfig.rate || 1
-        const speechTime = Math.ceil(digits.length * 600 / rate)
-        displayTime = Math.max(displayTime, speechTime)
-      }
+      // Also account for speech time
+      displayTime = Math.max(displayTime, speechTime)
     } else {
-      // Simultaneous mode: auto-calculate based on digit count and voice
-      const digitCount = digits.length
-
-      // Base time: 600ms per digit minimum
-      let baseDuration = digitCount * 600
-
-      // Add speech time if voice is enabled (600ms per digit at rate 1)
-      if (voiceConfig.enabled !== false) {
-        const rate = voiceConfig.rate || 1
-        const speechTime = Math.ceil(digitCount * 600 / rate)
-        // Always add speech time plus 800ms buffer
-        baseDuration = baseDuration + speechTime + 800
-      }
-
-      displayTime = Math.max(config.displayDuration, baseDuration)
+      // Simultaneous mode: use display duration but ensure speech can finish
+      displayTime = Math.max(config.displayDuration, speechTime)
     }
 
     setSession({
@@ -114,16 +104,26 @@ export default function TrainingView() {
     }))
   }, [inputValue, session])
 
-  // Speak result when showing
-  useEffect(() => {
-    if (session.state === 'RESULT_SHOWING' && session.isCorrect !== null) {
-      speakResultMessage(session.isCorrect, session.currentDigits)
-    }
-  }, [session.state, session.isCorrect, session.currentDigits])
-
   const nextQuestion = useCallback(() => {
     const config = getConfig()
     const digits = generateDigits(config.currentDigitCount)
+
+    // Calculate display time based on mode (same as startTraining)
+    let displayTime: number
+    let speechTime = 0
+    if (voiceConfig.enabled) {
+      const rate = voiceConfig.rate || 1
+      // 800ms initial delay + 800ms "请注意听" + 1200ms per digit + 300ms between digits
+      speechTime = Math.ceil((800 + 800 + digits.length * 1200 + digits.length * 300) / rate)
+    }
+
+    if (config.sequentialDisplay) {
+      displayTime = config.digitDisplayDuration * digits.length
+      displayTime = Math.max(displayTime, speechTime)
+    } else {
+      displayTime = Math.max(config.displayDuration, speechTime)
+    }
+
     setSession((prev) => ({
       ...prev,
       state: 'SHOWING_DIGITS',
@@ -138,8 +138,27 @@ export default function TrainingView() {
         ...prev,
         state: 'INPUTTING'
       }))
-    }, config.displayDuration)
-  }, [])
+    }, displayTime)
+  }, [voiceConfig])
+
+  // Speak result when showing and auto-continue
+  useEffect(() => {
+    if (session.state === 'RESULT_SHOWING' && session.isCorrect !== null) {
+      speakResultMessage(session.isCorrect, session.currentDigits)
+
+      // Auto-continue to next question if enabled
+      const config = getConfig()
+      console.log('[AutoContinue] Result shown, autoContinue:', config.autoContinue)
+      if (config.autoContinue) {
+        // Correct: 3 seconds, Incorrect: 7 seconds + digit count * 700ms (for reading answer)
+        const delay = session.isCorrect ? 3000 : 7000 + (session.currentDigits.length * 700)
+        console.log('[AutoContinue] Will continue in', delay, 'ms')
+        setTimeout(() => {
+          nextQuestion()
+        }, delay)
+      }
+    }
+  }, [session.state, session.isCorrect, session.currentDigits, nextQuestion])
 
   const finishTraining = useCallback(() => {
     // Save training record
@@ -195,6 +214,7 @@ export default function TrainingView() {
           onChange={setInputValue}
           onSubmit={submitAnswer}
           digitCount={session.digitCount}
+          expectedDigits={session.currentDigits}
         />
       )}
 

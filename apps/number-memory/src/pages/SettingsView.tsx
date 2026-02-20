@@ -7,6 +7,10 @@ export default function SettingsView() {
   const [displayDuration, setDisplayDuration] = useState(2000)
   const [digitDisplayDuration, setDigitDisplayDuration] = useState(1000)
   const [sequentialDisplay, setSequentialDisplay] = useState(false)
+  const [autoContinue, setAutoContinue] = useState(false)
+  const [currentDigitCount, setCurrentDigitCount] = useState(3)
+  const [autoRecord, setAutoRecord] = useState(false)
+  const [autoSubmit, setAutoSubmit] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Voice settings
@@ -20,6 +24,10 @@ export default function SettingsView() {
     setDisplayDuration(config.displayDuration)
     setDigitDisplayDuration(config.digitDisplayDuration)
     setSequentialDisplay(config.sequentialDisplay)
+    setAutoContinue(config.autoContinue)
+    setCurrentDigitCount(config.currentDigitCount)
+    setAutoRecord(config.autoRecord)
+    setAutoSubmit(config.autoSubmit)
   }, [])
 
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,6 +46,30 @@ export default function SettingsView() {
     const value = e.target.checked
     setSequentialDisplay(value)
     saveConfig({ sequentialDisplay: value })
+  }
+
+  const handleAutoContinueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.checked
+    setAutoContinue(value)
+    saveConfig({ autoContinue: value })
+  }
+
+  const handleDigitCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value, 10)
+    setCurrentDigitCount(value)
+    saveConfig({ currentDigitCount: value })
+  }
+
+  const handleAutoRecordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.checked
+    setAutoRecord(value)
+    saveConfig({ autoRecord: value })
+  }
+
+  const handleAutoSubmitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.checked
+    setAutoSubmit(value)
+    saveConfig({ autoSubmit: value })
   }
 
   const handleVoiceEnabledChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,6 +142,28 @@ export default function SettingsView() {
             />
             逐个显示数字
           </label>
+        </div>
+        <div className="checkbox-container">
+          <label>
+            <input
+              type="checkbox"
+              checked={autoContinue}
+              onChange={handleAutoContinueChange}
+            />
+            自动进入下一题
+          </label>
+        </div>
+        <div className="slider-container">
+          <span>当前位数:</span>
+          <input
+            type="range"
+            min="3"
+            max="15"
+            step="1"
+            value={currentDigitCount}
+            onChange={handleDigitCountChange}
+          />
+          <span className="slider-value">{currentDigitCount} 位</span>
         </div>
         {sequentialDisplay ? (
           <>
@@ -193,6 +247,30 @@ export default function SettingsView() {
               开启语音输入
             </label>
           </div>
+          {recognitionConfig.enabled && (
+            <>
+              <div className="checkbox-container">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={autoRecord}
+                    onChange={handleAutoRecordChange}
+                  />
+                  数字播报完成后自动开始录音（2秒后）
+                </label>
+              </div>
+              <div className="checkbox-container">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={autoSubmit}
+                    onChange={handleAutoSubmitChange}
+                  />
+                  识别正确立即提交，识别错误等待{'{位数*1200ms}'}后自动提交
+                </label>
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="setting-group">

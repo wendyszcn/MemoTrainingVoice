@@ -18,7 +18,10 @@ const DEFAULT_CONFIG: TrainingConfig = {
   sequentialDisplay: false,
   currentDigitCount: 3,
   consecutiveCorrect: 0,
-  consecutiveIncorrect: 0
+  consecutiveIncorrect: 0,
+  autoContinue: false,
+  autoRecord: false,
+  autoSubmit: false
 }
 
 const DEFAULT_STATS: UserStats = {
@@ -88,7 +91,14 @@ export function resetUserStats(): void {
 export function getConfig(): TrainingConfig {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.CONFIG)
-    return data ? { ...DEFAULT_CONFIG, ...JSON.parse(data) } : DEFAULT_CONFIG
+    const parsed = data ? JSON.parse(data) : {}
+    // Ensure all new fields have defaults
+    return {
+      ...DEFAULT_CONFIG,
+      ...parsed,
+      autoRecord: parsed.autoRecord ?? false,
+      autoSubmit: parsed.autoSubmit ?? false
+    }
   } catch {
     return DEFAULT_CONFIG
   }

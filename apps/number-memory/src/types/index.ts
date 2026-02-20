@@ -24,6 +24,9 @@ export interface TrainingConfig {
   currentDigitCount: number // default 3
   consecutiveCorrect: number // default 0
   consecutiveIncorrect: number // default 0
+  autoContinue: boolean // auto-advance to next question, default false
+  autoRecord: boolean // auto-start recording after digits, default false
+  autoSubmit: boolean // auto-submit based on recognition result, default false
 }
 
 // Training States

@@ -26,6 +26,7 @@ export function useSpeechRecognition() {
   const [config, setConfigState] = useState<SpeechRecognitionConfig>(loadConfig)
   const [supported, setSupported] = useState(false)
   const [listening, setListening] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const recognitionRef = useRef<any>(null)
 
   // Update config
@@ -39,19 +40,27 @@ export function useSpeechRecognition() {
 
   // Start listening
   const startListening = useCallback((onResult: (digits: string) => void) => {
-    if (listening) return
+    console.log('[useSpeechRecognition] startListening called, listening:', listening)
+    if (listening) {
+      console.log('[useSpeechRecognition] Already listening, returning')
+      return
+    }
 
+    console.log('[useSpeechRecognition] Starting recognition')
     setListening(true)
     recognitionRef.current = startRecognition(
       config,
       (digits) => {
+        console.log('[useSpeechRecognition] Got digits:', digits)
         onResult(digits)
       },
       () => {
+        console.log('[useSpeechRecognition] Recognition ended')
         setListening(false)
       },
       (error) => {
-        console.error('Speech recognition error:', error)
+        console.error('[useSpeechRecognition] Speech recognition error:', error)
+        setError(error)
         setListening(false)
       }
     )
@@ -81,6 +90,7 @@ export function useSpeechRecognition() {
     setConfig,
     supported,
     listening,
+    error,
     startListening,
     stopListening
   }

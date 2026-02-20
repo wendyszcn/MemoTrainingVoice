@@ -41,13 +41,17 @@ export function useSpeechSynthesis() {
   const speakText = useCallback(async (text: string) => {
     if (!supported || !config.enabled) return
 
+    console.log('[Speech] speakText called with:', text)
     // Stop any ongoing speech before starting new
     stop()
     setSpeaking(true)
     try {
       await speak(text, config)
     } catch (e) {
-      console.error('Speech error:', e)
+      // Ignore "interrupted" errors - they happen when speech is intentionally stopped
+      if (e instanceof Error && e.message !== 'interrupted') {
+        console.error('Speech error:', e)
+      }
     } finally {
       setSpeaking(false)
     }
@@ -57,18 +61,22 @@ export function useSpeechSynthesis() {
   const speakDigits = useCallback(async (digits: string) => {
     if (!supported || !config.enabled) return
 
+    console.log('[Speech] speakDigits called with:', digits)
     // Stop any ongoing speech before starting new
     stop()
     setSpeaking(true)
     try {
-      // Speak each digit individually with a small delay between
+      // Speak each digit individually with delay based on rate
       for (const digit of digits) {
         await speak(digit, config)
         // Add delay between digits based on rate (slower rate = more delay)
         await new Promise(resolve => setTimeout(resolve, 200 / config.rate))
       }
     } catch (e) {
-      console.error('Speech error:', e)
+      // Ignore "interrupted" errors - they happen when speech is intentionally stopped
+      if (e instanceof Error && e.message !== 'interrupted') {
+        console.error('Speech error:', e)
+      }
     } finally {
       setSpeaking(false)
     }
@@ -78,14 +86,36 @@ export function useSpeechSynthesis() {
   const speakResultMessage = useCallback(async (isCorrect: boolean, correctAnswer?: string) => {
     if (!supported || !config.enabled) return
 
+    console.log('[Speech] speakResultMessage called, isCorrect:', isCorrect, 'answer:', correctAnswer)
     // Stop any ongoing speech before starting new
     stop()
     setSpeaking(true)
     try {
-      const message = isCorrect ? '正确' : (correctAnswer ? `错误，正确答案是 ${correctAnswer}` : '错误')
+      // Correct: say "正确", Incorrect: say "错误，正确答案是" then digits
+      let message: string
+      if (isCorrect) {
+        message = '正确'
+      } else if (correctAnswer) {
+        // Speak "错误，正确答案是" then each digit individually with faster rate
+        message = '错误，正确答案是'
+        await speak(message, config)
+        // Use 1.5x rate for result feedback
+        const fastConfig = { ...config, rate: config.rate * 1.5 }
+        for (const digit of correctAnswer) {
+          await speak(digit, fastConfig)
+          // Fixed 100ms delay between digits (faster for result feedback)
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
+        return
+      } else {
+        message = '错误'
+      }
       await speak(message, config)
     } catch (e) {
-      console.error('Speech error:', e)
+      // Ignore "interrupted" errors - they happen when speech is intentionally stopped
+      if (e instanceof Error && e.message !== 'interrupted') {
+        console.error('Speech error:', e)
+      }
     } finally {
       setSpeaking(false)
     }
@@ -121,6 +151,7 @@ export function useSpeechSynthesis() {
     speakDigits,
     speakResultMessage,
     stopSpeaking,
+    stop,
     isSpeaking: () => speaking || isSpeaking()
   }
 }
