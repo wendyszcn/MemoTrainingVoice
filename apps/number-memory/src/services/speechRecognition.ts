@@ -107,34 +107,34 @@ export function startRecognition(
   recognition.interimResults = true
   recognition.lang = config.lang
 
-  let accumulatedDigits = ''
+  let latestDigits = ''
 
   recognition.onresult = (event: SpeechRecognitionEvent) => {
-    console.log('[SpeechRecognition] onresult called, results length:', event.results.length)
+    console.log('[SpeechRecognition] onresult called, results length:', event.results.length, 'resultIndex:', event.resultIndex)
     let newInterim = ''
     let newFinal = ''
 
-    // Process all results from current index
+    // Get the latest final result (highest index with isFinal=true)
     for (let i = 0; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript
       console.log('[SpeechRecognition] Result', i, ':', transcript, 'isFinal:', event.results[i].isFinal)
       if (event.results[i].isFinal) {
-        newFinal += transcript
+        newFinal = transcript  // Use latest final result, not cumulative
       } else {
-        newInterim += transcript
+        newInterim = transcript
       }
     }
 
     console.log('[SpeechRecognition] newInterim:', newInterim, 'newFinal:', newFinal)
 
-    // Extract digits from final results and accumulate
+    // Extract digits from final results - use latest only, not cumulative
     if (newFinal) {
       const newDigits = extractDigits(newFinal)
       console.log('[SpeechRecognition] Extracted digits from final:', newDigits)
-      accumulatedDigits += newDigits
-      if (accumulatedDigits) {
-        console.log('[SpeechRecognition] Calling onResult with:', accumulatedDigits)
-        onResult(accumulatedDigits)
+      latestDigits = newDigits  // Replace, not accumulate
+      if (latestDigits) {
+        console.log('[SpeechRecognition] Calling onResult with:', latestDigits)
+        onResult(latestDigits)
       }
     }
   }
@@ -158,8 +158,8 @@ export function startRecognition(
   recognition.onend = () => {
     console.log('[SpeechRecognition] onend called')
     // Determine why it ended - check if we got any results
-    if (accumulatedDigits) {
-      console.log('[SpeechRecognition] Ended with accumulated digits:', accumulatedDigits)
+    if (latestDigits) {
+      console.log('[SpeechRecognition] Ended with digits:', latestDigits)
     }
     onEnd()
   }
