@@ -89,6 +89,7 @@ export function useSpeechRecognition() {
   // Stop listening
   const stopListening = useCallback(() => {
     console.log('[useSpeechRecognition] stopListening called, recognitionRef:', recognitionRef.current ? 'exists' : 'null')
+    console.log('[useSpeechRecognition] Stack:', new Error().stack)
     if (!recognitionRef.current) {
       console.log('[useSpeechRecognition] No recognition, skipping')
       return

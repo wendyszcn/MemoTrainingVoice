@@ -87,12 +87,14 @@ export function startRecognition(
   let accumulatedDigits = ''
 
   recognition.onresult = (event: SpeechRecognitionEvent) => {
+    console.log('[SpeechRecognition] onresult called, results length:', event.results.length)
     let newInterim = ''
     let newFinal = ''
 
     // Process all results from current index
     for (let i = 0; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript
+      console.log('[SpeechRecognition] Result', i, ':', transcript, 'isFinal:', event.results[i].isFinal)
       if (event.results[i].isFinal) {
         newFinal += transcript
       } else {
@@ -100,11 +102,15 @@ export function startRecognition(
       }
     }
 
+    console.log('[SpeechRecognition] newInterim:', newInterim, 'newFinal:', newFinal)
+
     // Extract digits from final results and accumulate
     if (newFinal) {
       const newDigits = extractDigits(newFinal)
+      console.log('[SpeechRecognition] Extracted digits from final:', newDigits)
       accumulatedDigits += newDigits
       if (accumulatedDigits) {
+        console.log('[SpeechRecognition] Calling onResult with:', accumulatedDigits)
         onResult(accumulatedDigits)
       }
     }
