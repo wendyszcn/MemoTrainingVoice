@@ -86,12 +86,10 @@ export function useSpeechRecognition() {
     }
   }, [config])
 
-  // Stop listening - note: stack trace will show caller
+  // Stop listening
   const stopListening = useCallback(() => {
-    console.log('[useSpeechRecognition] stopListening called, recognitionRef.current:', recognitionRef.current ? 'exists' : 'null')
-    console.log('[useSpeechRecognition] Stack trace:', new Error().stack)
+    console.log('[useSpeechRecognition] stopListening called')
     if (!recognitionRef.current) {
-      console.log('[useSpeechRecognition] No active recognition, skipping stop')
       return
     }
     stopRecognition(recognitionRef.current)
@@ -103,9 +101,7 @@ export function useSpeechRecognition() {
   // Check support on mount and after a short delay (API might not be ready immediately)
   useEffect(() => {
     const checkSupport = () => {
-      const supported = isSupported()
-      console.log('[useSpeechRecognition] isSupported check:', supported)
-      setSupported(supported)
+      setSupported(isSupported())
     }
     // Check immediately
     checkSupport()
