@@ -79,8 +79,9 @@ export function startRecognition(
   console.log('[SpeechRecognition] Creating recognition instance')
   const recognition = new SpeechRecognitionClass()
 
-  // Continuous mode to keep listening
-  recognition.continuous = true
+  // Use single-shot mode (not continuous) to avoid issues
+  // The recognition will stop after each speech and we need to restart manually
+  recognition.continuous = false
   recognition.interimResults = true
   recognition.lang = config.lang
 
@@ -111,12 +112,23 @@ export function startRecognition(
   }
 
   recognition.onerror = (event: { error: string }) => {
+    console.log('[SpeechRecognition] onerror:', event.error)
     // Ignore no-speech errors, they happen naturally
-    if (event.error === 'no-speech') return
+    if (event.error === 'no-speech') {
+      console.log('[SpeechRecognition] Ignoring no-speech error')
+      return
+    }
+    // Also ignore aborted - happens when we stop manually
+    if (event.error === 'aborted') {
+      console.log('[SpeechRecognition] Ignoring aborted error')
+      return
+    }
+    console.error('[SpeechRecognition] Non-ignorable error, calling onError')
     onError(event.error)
   }
 
   recognition.onend = () => {
+    console.log('[SpeechRecognition] onend called')
     // Only call onEnd if not manually stopped
     onEnd()
   }
