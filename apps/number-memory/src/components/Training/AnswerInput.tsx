@@ -36,6 +36,7 @@ export default function AnswerInput({
   const onChangeRef = useRef(onChange)
   const onSubmitRef = useRef(onSubmit)
   const listeningRef = useRef(listening)
+  const stopListeningRef = useRef(stopListening)
 
   // Update refs when values change
   useEffect(() => { valueRef.current = value }, [value])
@@ -45,6 +46,7 @@ export default function AnswerInput({
   useEffect(() => { onChangeRef.current = onChange }, [onChange])
   useEffect(() => { onSubmitRef.current = onSubmit }, [onSubmit])
   useEffect(() => { listeningRef.current = listening }, [listening])
+  useEffect(() => { stopListeningRef.current = stopListening }, [stopListening])
 
   // Load config on mount
   useEffect(() => {
@@ -90,6 +92,12 @@ export default function AnswerInput({
     const newValue = (currentValue + digits).slice(0, currentDigitCount)
     console.log('[AutoRecord] New value:', newValue, 'digitCount:', currentDigitCount)
     currentOnChange(newValue)
+
+    // Auto-stop when we have enough digits (only if autoSubmit is disabled, otherwise autoSubmit handles it)
+    if (!currentAutoSubmit && newValue.length === currentDigitCount && listeningRef.current) {
+      console.log('[AutoRecord] Got enough digits, stopping recognition')
+      stopListeningRef.current()
+    }
 
     // Auto-submit logic (only if enabled)
     if (currentAutoSubmit && newValue.length === currentDigitCount) {
