@@ -79,8 +79,8 @@ export function startRecognition(
   console.log('[SpeechRecognition] Creating recognition instance')
   const recognition = new SpeechRecognitionClass()
 
-  // Continuous mode to keep listening
-  recognition.continuous = true
+  // Single-shot mode
+  recognition.continuous = false
   recognition.interimResults = true
   recognition.lang = config.lang
 
