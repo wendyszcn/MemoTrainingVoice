@@ -55,33 +55,10 @@ export function isSupported(): boolean {
   return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
 }
 
-// Chinese number mapping
-const CHINESE_NUMBERS: Record<string, string> = {
-  '零': '0',
-  '一': '1',
-  '二': '2',
-  '三': '3',
-  '四': '4',
-  '五': '5',
-  '六': '6',
-  '七': '7',
-  '八': '8',
-  '九': '9',
-  '〇': '0',
-  '两': '2',  // 常见说法 "两"
-}
-
-// Extract digits from transcript (supports both Arabic and Chinese numbers)
+// Extract digits from transcript (only Arabic digits)
 export function extractDigits(transcript: string): string {
-  let result = transcript.replace(/\s/g, '')
-
-  // First convert Chinese numbers to Arabic digits
-  for (const [chinese, arabic] of Object.entries(CHINESE_NUMBERS)) {
-    result = result.replace(new RegExp(chinese, 'g'), arabic)
-  }
-
-  // Then keep only digits
-  const digits = result.replace(/[^0-9]/g, '')
+  // Remove spaces and keep only digits
+  const digits = transcript.replace(/\s/g, '').replace(/[^0-9]/g, '')
   return digits
 }
 
@@ -102,79 +79,41 @@ export function startRecognition(
   console.log('[SpeechRecognition] Creating recognition instance')
   const recognition = new SpeechRecognitionClass()
 
-  // Use continuous mode to keep listening for multiple digits
-  recognition.continuous = true
+  // Use single-shot mode
+  recognition.continuous = false
   recognition.interimResults = true
   recognition.lang = config.lang
 
   let latestDigits = ''
 
   recognition.onresult = (event: SpeechRecognitionEvent) => {
-    console.log('[SpeechRecognition] onresult called, results length:', event.results.length, 'resultIndex:', event.resultIndex)
-    let newInterim = ''
-    let newFinal = ''
-
-    // Get the latest final result (highest index with isFinal=true)
-    for (let i = 0; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript
-      console.log('[SpeechRecognition] Result', i, ':', transcript, 'isFinal:', event.results[i].isFinal)
-      if (event.results[i].isFinal) {
-        newFinal = transcript  // Use latest final result, not cumulative
-      } else {
-        newInterim = transcript
-      }
-    }
-
-    console.log('[SpeechRecognition] newInterim:', newInterim, 'newFinal:', newFinal)
-
-    // Extract digits from final results - use latest only, not cumulative
-    if (newFinal) {
-      const newDigits = extractDigits(newFinal)
-      console.log('[SpeechRecognition] Extracted digits from final:', newDigits)
-      latestDigits = newDigits  // Replace, not accumulate
+    // Get the latest result
+    const result = event.results[event.results.length - 1]
+    if (result && result.isFinal) {
+      const transcript = result[0].transcript
+      latestDigits = extractDigits(transcript)
       if (latestDigits) {
-        console.log('[SpeechRecognition] Calling onResult with:', latestDigits)
         onResult(latestDigits)
       }
     }
   }
 
   recognition.onerror = (event: { error: string }) => {
-    console.log('[SpeechRecognition] onerror:', event.error)
-    // Ignore no-speech errors, they happen naturally
-    if (event.error === 'no-speech') {
-      console.log('[SpeechRecognition] Ignoring no-speech error')
+    // Ignore no-speech and aborted errors
+    if (event.error === 'no-speech' || event.error === 'aborted') {
       return
     }
-    // Also ignore aborted - happens when we stop manually
-    if (event.error === 'aborted') {
-      console.log('[SpeechRecognition] Ignoring aborted error')
-      return
-    }
-    console.error('[SpeechRecognition] Non-ignorable error, calling onError')
     onError(event.error)
   }
 
   recognition.onend = () => {
-    console.log('[SpeechRecognition] onend called')
-    // Determine why it ended - check if we got any results
-    if (latestDigits) {
-      console.log('[SpeechRecognition] Ended with digits:', latestDigits)
-    }
     onEnd()
   }
 
-  recognition.onstart = () => {
-    console.log('[SpeechRecognition] Recognition started')
-  }
-
   try {
-    console.log('[SpeechRecognition] Calling recognition.start()')
     recognition.start()
-    console.log('[SpeechRecognition] recognition.start() called successfully')
     return recognition
   } catch (e) {
-    console.error('[SpeechRecognition] Error starting recognition:', e)
     onError('启动语音识别失败')
     return null
   }

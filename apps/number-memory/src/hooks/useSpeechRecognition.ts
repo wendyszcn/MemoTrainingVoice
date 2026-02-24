@@ -42,35 +42,24 @@ export function useSpeechRecognition() {
   // Start listening - must be called directly from user interaction (click)
   const startListening = useCallback((onResult: (digits: string) => void) => {
     // Prevent multiple simultaneous starts
-    if (isStartingRef.current) {
-      console.log('[useSpeechRecognition] Already starting, returning')
+    if (isStartingRef.current || recognitionRef.current) {
       return
     }
 
-    // Don't start if already have an active recognition
-    if (recognitionRef.current) {
-      console.log('[useSpeechRecognition] Recognition already active, returning')
-      return
-    }
-
-    console.log('[useSpeechRecognition] Starting recognition')
     isStartingRef.current = true
     setListening(true)
 
     recognitionRef.current = startRecognition(
       config,
       (digits) => {
-        console.log('[useSpeechRecognition] Got digits:', digits)
         onResult(digits)
       },
       () => {
-        console.log('[useSpeechRecognition] Recognition ended')
         recognitionRef.current = null
         isStartingRef.current = false
         setListening(false)
       },
       (error) => {
-        console.error('[useSpeechRecognition] Speech recognition error:', error)
         setError(error)
         recognitionRef.current = null
         isStartingRef.current = false
@@ -80,7 +69,6 @@ export function useSpeechRecognition() {
 
     // If recognition failed to start
     if (!recognitionRef.current) {
-      console.log('[useSpeechRecognition] Recognition failed to start')
       isStartingRef.current = false
       setListening(false)
     }
@@ -88,13 +76,9 @@ export function useSpeechRecognition() {
 
   // Stop listening
   const stopListening = useCallback(() => {
-    console.log('[useSpeechRecognition] stopListening called, recognitionRef:', recognitionRef.current ? 'exists' : 'null')
-    console.log('[useSpeechRecognition] Stack:', new Error().stack)
     if (!recognitionRef.current) {
-      console.log('[useSpeechRecognition] No recognition, skipping')
       return
     }
-    console.log('[useSpeechRecognition] Actually stopping recognition')
     stopRecognition(recognitionRef.current)
     recognitionRef.current = null
     isStartingRef.current = false
