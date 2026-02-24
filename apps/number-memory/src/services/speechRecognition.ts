@@ -111,8 +111,9 @@ export function startRecognition(
   }
 
   recognition.onerror = (event: { error: string }) => {
-    // Ignore no-speech errors, they happen naturally
+    // Ignore these errors - they happen naturally
     if (event.error === 'no-speech') return
+    if (event.error === 'network') return  // Network errors - just stop silently
     onError(event.error)
   }
 
