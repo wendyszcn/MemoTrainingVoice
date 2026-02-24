@@ -55,10 +55,33 @@ export function isSupported(): boolean {
   return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
 }
 
-// Extract digits from transcript
+// Chinese number mapping
+const CHINESE_NUMBERS: Record<string, string> = {
+  '零': '0',
+  '一': '1',
+  '二': '2',
+  '三': '3',
+  '四': '4',
+  '五': '5',
+  '六': '6',
+  '七': '7',
+  '八': '8',
+  '九': '9',
+  '〇': '0',
+  '两': '2',  // 常见说法 "两"
+}
+
+// Extract digits from transcript (supports both Arabic and Chinese numbers)
 export function extractDigits(transcript: string): string {
-  // Remove spaces and keep only digits
-  const digits = transcript.replace(/\s/g, '').replace(/[^0-9]/g, '')
+  let result = transcript.replace(/\s/g, '')
+
+  // First convert Chinese numbers to Arabic digits
+  for (const [chinese, arabic] of Object.entries(CHINESE_NUMBERS)) {
+    result = result.replace(new RegExp(chinese, 'g'), arabic)
+  }
+
+  // Then keep only digits
+  const digits = result.replace(/[^0-9]/g, '')
   return digits
 }
 
