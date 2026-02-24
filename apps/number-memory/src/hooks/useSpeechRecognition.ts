@@ -39,7 +39,7 @@ export function useSpeechRecognition() {
     })
   }, [])
 
-  // Start listening - use refs to avoid stale closure issues
+  // Start listening - must be called directly from user interaction (click)
   const startListening = useCallback((onResult: (digits: string) => void) => {
     // Prevent multiple simultaneous starts
     if (isStartingRef.current) {
@@ -53,42 +53,37 @@ export function useSpeechRecognition() {
       return
     }
 
-    console.log('[useSpeechRecognition] startListening: about to create recognition instance')
+    console.log('[useSpeechRecognition] Starting recognition')
     isStartingRef.current = true
+    setListening(true)
 
-    // Small delay to allow browser to reset from previous session
-    setTimeout(() => {
-      console.log('[useSpeechRecognition] Delayed start: creating recognition instance')
-      setListening(true)
-
-      recognitionRef.current = startRecognition(
-        config,
-        (digits) => {
-          console.log('[useSpeechRecognition] Got digits:', digits)
-          onResult(digits)
-        },
-        () => {
-          console.log('[useSpeechRecognition] Recognition ended')
-          recognitionRef.current = null
-          isStartingRef.current = false
-          setListening(false)
-        },
-        (error) => {
-          console.error('[useSpeechRecognition] Speech recognition error:', error)
-          setError(error)
-          recognitionRef.current = null
-          isStartingRef.current = false
-          setListening(false)
-        }
-      )
-
-      // If recognition failed to start
-      if (!recognitionRef.current) {
-        console.log('[useSpeechRecognition] Recognition failed to start')
+    recognitionRef.current = startRecognition(
+      config,
+      (digits) => {
+        console.log('[useSpeechRecognition] Got digits:', digits)
+        onResult(digits)
+      },
+      () => {
+        console.log('[useSpeechRecognition] Recognition ended')
+        recognitionRef.current = null
+        isStartingRef.current = false
+        setListening(false)
+      },
+      (error) => {
+        console.error('[useSpeechRecognition] Speech recognition error:', error)
+        setError(error)
+        recognitionRef.current = null
         isStartingRef.current = false
         setListening(false)
       }
-    }, 100) // 100ms delay to allow browser to reset
+    )
+
+    // If recognition failed to start
+    if (!recognitionRef.current) {
+      console.log('[useSpeechRecognition] Recognition failed to start')
+      isStartingRef.current = false
+      setListening(false)
+    }
   }, [config])
 
   // Stop listening
