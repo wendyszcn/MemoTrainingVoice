@@ -55,7 +55,7 @@ export function isSupported(): boolean {
   return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window
 }
 
-// Extract digits from transcript (only Arabic digits)
+// Extract digits from transcript
 export function extractDigits(transcript: string): string {
   // Remove spaces and keep only digits
   const digits = transcript.replace(/\s/g, '').replace(/[^0-9]/g, '')
@@ -79,41 +79,59 @@ export function startRecognition(
   console.log('[SpeechRecognition] Creating recognition instance')
   const recognition = new SpeechRecognitionClass()
 
-  // Use single-shot mode
-  recognition.continuous = false
+  // Continuous mode to keep listening
+  recognition.continuous = true
   recognition.interimResults = true
   recognition.lang = config.lang
 
-  let latestDigits = ''
+  let accumulatedDigits = ''
 
   recognition.onresult = (event: SpeechRecognitionEvent) => {
-    // Get the latest result
-    const result = event.results[event.results.length - 1]
-    if (result && result.isFinal) {
-      const transcript = result[0].transcript
-      latestDigits = extractDigits(transcript)
-      if (latestDigits) {
-        onResult(latestDigits)
+    let newInterim = ''
+    let newFinal = ''
+
+    // Process all results from current index
+    for (let i = 0; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript
+      if (event.results[i].isFinal) {
+        newFinal += transcript
+      } else {
+        newInterim += transcript
+      }
+    }
+
+    // Extract digits from final results and accumulate
+    if (newFinal) {
+      const newDigits = extractDigits(newFinal)
+      accumulatedDigits += newDigits
+      if (accumulatedDigits) {
+        onResult(accumulatedDigits)
       }
     }
   }
 
   recognition.onerror = (event: { error: string }) => {
-    // Ignore no-speech and aborted errors
-    if (event.error === 'no-speech' || event.error === 'aborted') {
-      return
-    }
+    // Ignore no-speech errors, they happen naturally
+    if (event.error === 'no-speech') return
     onError(event.error)
   }
 
   recognition.onend = () => {
+    // Only call onEnd if not manually stopped
     onEnd()
   }
 
+  recognition.onstart = () => {
+    console.log('[SpeechRecognition] Recognition started')
+  }
+
   try {
+    console.log('[SpeechRecognition] Calling recognition.start()')
     recognition.start()
+    console.log('[SpeechRecognition] recognition.start() called successfully')
     return recognition
   } catch (e) {
+    console.error('[SpeechRecognition] Error starting recognition:', e)
     onError('启动语音识别失败')
     return null
   }

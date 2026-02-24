@@ -28,7 +28,6 @@ export function useSpeechRecognition() {
   const [listening, setListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const recognitionRef = useRef<any>(null)
-  const isStartingRef = useRef(false)
 
   // Update config
   const setConfig = useCallback((newConfig: Partial<SpeechRecognitionConfig>) => {
@@ -39,62 +38,44 @@ export function useSpeechRecognition() {
     })
   }, [])
 
-  // Start listening - must be called directly from user interaction (click)
+  // Start listening
   const startListening = useCallback((onResult: (digits: string) => void) => {
-    // Prevent multiple simultaneous starts
-    if (isStartingRef.current || recognitionRef.current) {
+    console.log('[useSpeechRecognition] startListening called, listening:', listening)
+    if (listening) {
+      console.log('[useSpeechRecognition] Already listening, returning')
       return
     }
 
-    isStartingRef.current = true
+    console.log('[useSpeechRecognition] Starting recognition')
     setListening(true)
-
     recognitionRef.current = startRecognition(
       config,
       (digits) => {
+        console.log('[useSpeechRecognition] Got digits:', digits)
         onResult(digits)
       },
       () => {
-        recognitionRef.current = null
-        isStartingRef.current = false
+        console.log('[useSpeechRecognition] Recognition ended')
         setListening(false)
       },
       (error) => {
+        console.error('[useSpeechRecognition] Speech recognition error:', error)
         setError(error)
-        recognitionRef.current = null
-        isStartingRef.current = false
         setListening(false)
       }
     )
-
-    // If recognition failed to start
-    if (!recognitionRef.current) {
-      isStartingRef.current = false
-      setListening(false)
-    }
-  }, [config])
+  }, [config, listening])
 
   // Stop listening
   const stopListening = useCallback(() => {
-    if (!recognitionRef.current) {
-      return
-    }
     stopRecognition(recognitionRef.current)
     recognitionRef.current = null
-    isStartingRef.current = false
     setListening(false)
   }, [])
 
-  // Check support on mount and after a short delay (API might not be ready immediately)
+  // Check support on mount
   useEffect(() => {
-    const checkSupport = () => {
-      setSupported(isSupported())
-    }
-    // Check immediately
-    checkSupport()
-    // Check again after a short delay (some browsers need time to initialize)
-    const timer = setTimeout(checkSupport, 500)
-    return () => clearTimeout(timer)
+    setSupported(isSupported())
   }, [])
 
   // Cleanup on unmount

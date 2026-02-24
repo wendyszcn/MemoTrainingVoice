@@ -170,8 +170,7 @@ export default function AnswerInput({
   }
 
   const handleMicClick = () => {
-    // Use ref to get latest listening state, avoid stale closure
-    if (listeningRef.current) {
+    if (listening) {
       stopListening()
     } else {
       stopSpeech()
