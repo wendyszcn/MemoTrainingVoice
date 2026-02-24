@@ -128,7 +128,10 @@ export function startRecognition(
 
   recognition.onend = () => {
     console.log('[SpeechRecognition] onend called')
-    // Only call onEnd if not manually stopped
+    // Determine why it ended - check if we got any results
+    if (accumulatedDigits) {
+      console.log('[SpeechRecognition] Ended with accumulated digits:', accumulatedDigits)
+    }
     onEnd()
   }
 

@@ -88,10 +88,12 @@ export function useSpeechRecognition() {
 
   // Stop listening
   const stopListening = useCallback(() => {
-    console.log('[useSpeechRecognition] stopListening called')
+    console.log('[useSpeechRecognition] stopListening called, recognitionRef:', recognitionRef.current ? 'exists' : 'null')
     if (!recognitionRef.current) {
+      console.log('[useSpeechRecognition] No recognition, skipping')
       return
     }
+    console.log('[useSpeechRecognition] Actually stopping recognition')
     stopRecognition(recognitionRef.current)
     recognitionRef.current = null
     isStartingRef.current = false
